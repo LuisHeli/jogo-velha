@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Velha 3D</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --x-color: #f72585;
+            --o-color: #4cc9f0;
+            --bg-color: #1a1a2e;
+            --board-color: #16213e;
+            --cell-color: #0f3460;
+            --text-color: #f8f9fa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        h1 {
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+            text-align: center;
+            background: linear-gradient(90deg, var(--x-color), var(--o-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .status {
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: fit-content;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 300px;
+            aspect-ratio: 1/1;
+            background-color: var(--board-color);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3),
+                        inset 0 0 15px rgba(255, 255, 255, 0.05);
+        }
+
+        .cell {
+            background-color: var(--cell-color);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            cursor: pointer;
+            aspect-ratio: 1/1;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .cell:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .cell.x {
+            color: var(--x-color);
+        }
+
+        .cell.o {
+            color: var(--o-color);
+        }
+
+        .cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                          rgba(255, 255, 255, 0.1), 
+                          rgba(255, 255, 255, 0.05));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .cell:hover::before {
+            opacity: 1;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 300px;
+            margin-top: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .player-score {
+            text-align: center;
+            flex: 1;
+        }
+
+        .player-score.x {
+            color: var(--x-color);
+        }
+
+        .player-score.o {
+            color: var(--o-color);
+        }
+
+        .score-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, var(--board-color), var(--bg-color));
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            transform: scale(0.8);
+            transition: transform 0.3s;
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--x-color), var(--o-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .modal p {
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+        }
+
+        .modal button {
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 500px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .cell {
+                font-size: 2.5rem;
+            }
+            
+            .status {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Jogo da Velha 3D</h1>
+    
+    <div class="game-container">
+        <div class="status" id="status">Vez do Jogador X</div>
+        
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        
+        <div class="scoreboard">
+            <div class="player-score x">
+                <div class="score-label">Jogador X</div>
+                <div class="score-value" id="score-x">0</div>
+            </div>
+            <div class="player-score o">
+                <div class="score-label">Jogador O</div>
+                <div class="score-value" id="score-o">0</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="reset-btn">Reiniciar Partida</button>
+            <button id="new-game-btn">Novo Jogo</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Vitória do Jogador X!</h2>
+            <p id="modal-message">Parabéns pelo seu desempenho!</p>
+            <button id="modal-button">Jogar Novamente</button>
+        </div>
+    </div>
+    
+    <footer>
+        Jogo desenvolvido por Luis Heli
+    </footer>
+
+    <script>
+        // Estado do jogo
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let gameActive = true;
+        let scores = { X: 0, O: 0 };
+        
+        // Elementos DOM
+        const cells = document.querySelectorAll('.cell');
+        const statusElement = document.getElementById('status');
+        const scoreXElement = document.getElementById('score-x');
+        const scoreOElement = document.getElementById('score-o');
+        const resetButton = document.getElementById('reset-btn');
+        const newGameButton = document.getElementById('new-game-btn');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalButton = document.getElementById('modal-button');
+        
+        // Condições de vitória (índices das células)
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // linhas
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // colunas
+            [0, 4, 8], [2, 4, 6]             // diagonais
+        ];
+        
+        // Inicializar o jogo
+        function initGame() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            gameActive = true;
+            
+            // Limpar o tabuleiro visual
+            cells.forEach(cell => {
+                cell.textContent = '';
+                cell.classList.remove('x', 'o');
+            });
+            
+            // Atualizar status
+            updateStatus();
+        }
+        
+        // Manipular clique na célula
+        function handleCellClick(e) {
+            const clickedCell = e.target;
+            const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+            
+            // Se a célula já foi preenchida ou o jogo não está ativo, ignorar
+            if (board[clickedCellIndex] !== '' || !gameActive) return;
+            
+            // Atualizar o tabuleiro e a interface
+            board[clickedCellIndex] = currentPlayer;
+            clickedCell.textContent = currentPlayer;
+            clickedCell.classList.add(currentPlayer.toLowerCase());
+            
+            // Verificar vitória ou empate
+            checkResult();
+        }
+        
+        // Verificar resultado do jogo
+        function checkResult() {
+            let roundWon = false;
+            
+            // Verificar todas as condições de vitória
+            for (let i = 0; i < winningConditions.length; i++) {
+                const [a, b, c] = winningConditions[i];
+                
+                if (board[a] === '' || board[b] === '' || board[c] === '') continue;
+                
+                if (board[a] === board[b] && board[b] === board[c]) {
+                    roundWon = true;
+                    break;
+                }
+            }
+            
+            // Se houver vitória
+            if (roundWon) {
+                gameActive = false;
+                scores[currentPlayer]++;
+                updateScores();
+                showModal(`Vitória do Jogador ${currentPlayer}!`, 'Parabéns pelo seu desempenho!');
+                return;
+            }
+            
+            // Se houver empate
+            if (!board.includes('')) {
+                gameActive = false;
+                showModal('Empate!', 'Ninguém ganhou desta vez. Tente novamente!');
+                return;
+            }
+            
+            // Mudar jogador
+            changePlayer();
+        }
+        
+        // Mudar jogador atual
+        function changePlayer() {
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateStatus();
+        }
+        
+        // Atualizar o status do jogo
+        function updateStatus() {
+            statusElement.textContent = `Vez do Jogador ${currentPlayer}`;
+        }
+        
+        // Atualizar placar
+        function updateScores() {
+            scoreXElement.textContent = scores.X;
+            scoreOElement.textContent = scores.O;
+        }
+        
+        // Mostrar modal
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modal.classList.add('active');
+        }
+        
+        // Event listeners
+        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+        
+        resetButton.addEventListener('click', initGame);
+        
+        newGameButton.addEventListener('click', () => {
+            scores = { X: 0, O: 0 };
+            updateScores();
+            initGame();
+        });
+        
+        modalButton.addEventListener('click', () => {
+            modal.classList.remove('active');
+            initGame();
+        });
+        
+        // Iniciar o jogo
+        initGame();
+    </script>
+</body>
+</html>
